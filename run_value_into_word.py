@@ -5,6 +5,8 @@ import argparse
 from gslide.excel_reader import get_value
 from gslide.word_writer import write_to_bookmark
 
+# Indicate this is the updated script
+print("🔄 running updated script…")
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -17,16 +19,24 @@ def main() -> None:
     parser.add_argument("--bookmark", required=True, help="Bookmark name in Word doc")
     args = parser.parse_args()
 
-    # ── make the paths absolute so Excel/Word can always find them ─────────────
+    # Make the paths absolute so Excel/Word can always find them
     args.excel = str(Path(args.excel).expanduser().resolve())
     args.word  = str(Path(args.word).expanduser().resolve())
 
-    # ── do the work ────────────────────────────────────────────────────────────
-    value = get_value(args.excel, args.sheet, args.cell)
-    write_to_bookmark(args.word, args.bookmark, value)
+    # Retrieve the value from Excel
+    raw_value = get_value(args.excel, args.sheet, args.cell)
+
+    # Format the value with comma as thousands separator
+    try:
+        formatted_value = f"{raw_value:,}"
+    except Exception:
+        formatted_value = str(raw_value)
+
+    # Write the formatted value into the Word bookmark
+    write_to_bookmark(args.word, args.bookmark, formatted_value)
 
     print(
-        f"✅  Wrote {value!r} from {args.sheet}!{args.cell} "
+        f"✅  Wrote {formatted_value!r} from {args.sheet}!{args.cell} "
         f"into bookmark “{args.bookmark}”."
     )
 
