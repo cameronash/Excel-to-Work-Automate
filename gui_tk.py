@@ -8,14 +8,37 @@ from tkinter import filedialog, messagebox, ttk
 import threading
 import sys
 import os
+import shutil
+import time
+import traceback
+
+# Determine application base path (works for both script and frozen exe)
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        # If running as compiled executable
+        return os.path.dirname(sys.executable)
+    else:
+        # If running as script
+        return os.path.dirname(os.path.abspath(__file__))
+
+# Make sure we can import run_value_into_word regardless of how we're running
+base_path = get_base_path()
+if base_path not in sys.path:
+    sys.path.insert(0, base_path)
 
 # Import your main logic
-from run_value_into_word import main as run_script
+try:
+    from run_value_into_word import main as run_script
+    from run_value_into_word import load_mappings_from_excel, format_number, format_number_as_words
+except ImportError as e:
+    messagebox.showerror("Import Error", f"Could not import required modules: {e}")
+    sys.exit(1)
 
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("G-Slide Runner")
+        self.base_path = get_base_path()
 
         # Excel picker
         tk.Label(self, text="Excel file:").grid(row=0, column=0, sticky="e", padx=4, pady=4)
@@ -34,21 +57,39 @@ class App(tk.Tk):
         self.progress.grid(row=2, column=0, columnspan=3, pady=10)
 
         # Run / Exit buttons
-        tk.Button(self, text="Run",   width=12, command=self.start).grid(row=3, column=1, sticky="e", pady=8)
-        tk.Button(self, text="Exit",  width=12, command=self.destroy).grid(row=3, column=2, sticky="w", pady=8)
+        tk.Button(self, text="Run", width=12, command=self.start).grid(row=3, column=1, sticky="e", pady=8)
+        tk.Button(self, text="Exit", width=12, command=self.destroy).grid(row=3, column=2, sticky="w", pady=8)
 
         # Make the window non-resizable
         self.resizable(False, False)
         
         # Default to known good files if they exist
-        default_excel = os.path.abspath("tests/assets/Sample.xlsx")
-        default_word = os.path.abspath("tests/assets/Template.docm")
+        self.set_default_files()
+
+    def set_default_files(self):
+        """Set default Excel and Word files if they exist"""
+        # Try multiple possible locations for the sample files
+        possible_paths = [
+            # Relative to executable or script
+            os.path.join(self.base_path, "tests", "assets"),
+            # One directory up (if in dist folder)
+            os.path.join(os.path.dirname(self.base_path), "tests", "assets"),
+            # Absolute path if app was previously in C:\g-slide-next
+            r"C:\g-slide-next\tests\assets"
+        ]
         
-        if os.path.exists(default_excel):
-            self.excel_var.set(default_excel)
+        for path in possible_paths:
+            excel_path = os.path.join(path, "Sample.xlsx")
+            word_path = os.path.join(path, "Template.docm")
+            
+            if os.path.exists(excel_path) and os.path.exists(word_path):
+                self.excel_var.set(excel_path)
+                self.word_var.set(word_path)
+                print(f"Found default files in: {path}")
+                break
         
-        if os.path.exists(default_word):
-            self.word_var.set(default_word)
+        if not self.excel_var.get():
+            print("No default files found. Please browse for files.")
 
     def browse_excel(self):
         path = filedialog.askopenfilename(
@@ -64,9 +105,53 @@ class App(tk.Tk):
         if path:
             self.word_var.set(path)
 
+    def get_config_path(self):
+        """Find the config file, considering both script and executable modes"""
+        # List of possible config file locations
+        possible_paths = [
+            # Direct relative to exe or script
+            os.path.join(self.base_path, "config", "g-slide mapping.xlsx"),
+            # One folder up (if in dist folder)
+            os.path.join(os.path.dirname(self.base_path), "config", "g-slide mapping.xlsx"),
+            # Inside a temporary _MEI folder (PyInstaller's temp folder)
+            os.path.join(getattr(sys, '_MEIPASS', self.base_path), "config", "g-slide mapping.xlsx"),
+            # Absolute path if app was previously in C:\g-slide-next
+            r"C:\g-slide-next\config\g-slide mapping.xlsx"
+        ]
+        
+        # Try each path
+        for path in possible_paths:
+            if os.path.exists(path):
+                print(f"Found config file: {path}")
+                return path
+        
+        # If no config file found, ask user to select it
+        messagebox.showinfo("Config File Not Found", 
+                           "Please select the 'g-slide mapping.xlsx' config file.")
+        path = filedialog.askopenfilename(
+            title="Select g-slide mapping.xlsx", 
+            filetypes=[("Excel files","*.xlsx")]
+        )
+        
+        if path:
+            # Try to copy the selected config file to the expected location
+            try:
+                target_dir = os.path.join(self.base_path, "config")
+                os.makedirs(target_dir, exist_ok=True)
+                target_path = os.path.join(target_dir, "g-slide mapping.xlsx")
+                shutil.copy2(path, target_path)
+                print(f"Copied config file to: {target_path}")
+                return target_path
+            except Exception as e:
+                print(f"Could not copy config file: {e}")
+                return path
+        
+        return None  # No config file found or selected
+
     def start(self):
         excel_path = self.excel_var.get().strip()
-        word_path  = self.word_var.get().strip()
+        word_path = self.word_var.get().strip()
+        
         if not excel_path or not word_path:
             messagebox.showwarning("Missing file", "Please select both Excel and Word files first.")
             return
@@ -91,34 +176,75 @@ class App(tk.Tk):
             self.progress.stop()
             return
         
-        # Print paths for debugging
-        print(f"\nUsing Excel file: {excel_path}")
-        print(f"Using Word file: {word_path}")
+        # Get the config file path
+        config_path = self.get_config_path()
+        if not config_path:
+            messagebox.showerror("Error", "Config file not found and not selected.")
+            self.progress.stop()
+            return
         
-        # We'll simulate passing CLI args by setting sys.argv
-        sys_argv_backup = sys.argv.copy()
-        sys.argv = [sys.argv[0],
-                    "--config", "config/g-slide mapping.xlsx",
-                    "--excel", excel_path,
-                    "--word", word_path]
+        # Print paths for debugging
+        print(f"\nOriginal Excel file: {excel_path}")
+        print(f"Original Word file: {word_path}")
+        print(f"Original config file: {config_path}")
+        
+        # Create a temporary directory for local processing
+        import tempfile
+        temp_dir = tempfile.mkdtemp()
+        print(f"Created temporary directory: {temp_dir}")
+        
+        # Create local copies of files
+        local_excel = os.path.join(temp_dir, os.path.basename(excel_path))
+        local_word = os.path.join(temp_dir, os.path.basename(word_path))
+        local_config = os.path.join(temp_dir, os.path.basename(config_path))
+        
         try:
+            # Copy files locally
+            print(f"Copying Excel file to local temp directory...")
+            shutil.copy2(excel_path, local_excel)
+            
+            print(f"Copying Word file to local temp directory...")
+            shutil.copy2(word_path, local_word)
+            
+            print(f"Copying config file to local temp directory...")
+            shutil.copy2(config_path, local_config)
+            
+            print(f"\nUsing local Excel file: {local_excel}")
+            print(f"Using local Word file: {local_word}")
+            print(f"Using local config file: {local_config}")
+            
             # Initialize COM in this thread with STA model
             import pythoncom
-            import time
             pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
             
-            # Modify run_script to create our own instance with delay
-            from gslide.excel_reader import _open_excel, _safe_close
-            from run_value_into_word import load_mappings_from_excel, format_number, format_number_as_words
-            from gslide.word_writer import _open_word
+            # Import needed modules here to ensure proper COM initialization
+            try:
+                from gslide.excel_reader import _open_excel, _safe_close
+                from gslide.word_writer import _open_word
+            except ImportError as e:
+                # If running as exe and can't find gslide module
+                if getattr(sys, 'frozen', False):
+                    # Try to add src to path
+                    for src_path in [
+                        os.path.join(self.base_path, "src"),
+                        os.path.join(os.path.dirname(self.base_path), "src"),
+                        r"C:\g-slide-next\src"
+                    ]:
+                        if os.path.exists(src_path):
+                            sys.path.insert(0, src_path)
+                            print(f"Added to path: {src_path}")
+                            break
+                    
+                    # Try import again
+                    from gslide.excel_reader import _open_excel, _safe_close
+                    from gslide.word_writer import _open_word
             
-            # Load mappings
-            config_path = "config/g-slide mapping.xlsx"
-            mappings = load_mappings_from_excel(config_path)
-            print(f"🔢 Loaded {len(mappings)} mappings from '{config_path}'")
+            # Load mappings from the local config
+            mappings = load_mappings_from_excel(local_config)
+            print(f"🔢 Loaded {len(mappings)} mappings from '{local_config}'")
             
             # --- open Excel with delay ---
-            xl, wb = _open_excel(excel_path)
+            xl, wb = _open_excel(local_excel)
             print("📊 Excel opened, waiting for workbook to fully load...")
             time.sleep(1)  # Give Excel a second to fully load
             
@@ -148,7 +274,7 @@ class App(tk.Tk):
                 _safe_close(xl, wb)
             
             # --- open Word once ---
-            word_app, doc = _open_word(word_path)
+            word_app, doc = _open_word(local_word)
             try:
                 for sheet, cell, bookmark, fmt in mappings:
                     raw = raw_values.get((sheet, cell))
@@ -176,10 +302,13 @@ class App(tk.Tk):
             finally:
                 doc.Close(False)
                 word_app.Quit()
+            
+            # Copy the updated Word document back to the original location
+            print(f"Copying updated Word file back to original location: {word_path}")
+            shutil.copy2(local_word, word_path)
                 
             messagebox.showinfo("Done", "All bookmarks updated successfully!")
         except Exception as e:
-            import traceback
             error_msg = traceback.format_exc()
             print(f"Error details:\n{error_msg}")
             messagebox.showerror("Error", f"Something went wrong:\n\n{str(e)}")
@@ -189,7 +318,14 @@ class App(tk.Tk):
                 pythoncom.CoUninitialize()
             except:
                 pass
-            sys.argv = sys_argv_backup
+            
+            # Clean up temporary directory
+            try:
+                print(f"Cleaning up temporary directory: {temp_dir}")
+                shutil.rmtree(temp_dir)
+            except Exception as e:
+                print(f"Warning: Could not remove temp directory: {e}")
+            
             self.progress.stop()
 
 if __name__ == "__main__":
