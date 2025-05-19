@@ -1,12 +1,16 @@
-# src/gslide/word_writer.py
 from __future__ import annotations
+import logging
 import win32com.client as win32
 import pythoncom
 
+# Configure a simple logger
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+
 def _open_word(doc_path: str, readonly: bool = True):
     """
-    Internal: launch Word and open the specified document once.
-    Returns (word_app, document).
+    Internal: initialize COM, launch Word, and open the document.
+    Returns (word_app, doc).
     """
     pythoncom.CoInitialize()
     word_app = win32.Dispatch("Word.Application")
@@ -21,6 +25,7 @@ def _open_word(doc_path: str, readonly: bool = True):
     )
     return word_app, doc
 
+
 def write_to_bookmark(
     doc_path: str,
     bookmark: str,
@@ -31,32 +36,34 @@ def write_to_bookmark(
     readonly_template: bool = True,
 ) -> None:
     """
-    Overwrite (or insert) *text* at a Word *bookmark*, warning on missing or error,
-    but continuing without stopping the entire run.
-
-    If no word_app/doc pair is supplied, this will open+close Word per bookmark;
-    otherwise it reuses the provided session.
+    Overwrite or insert *text* at a Word *bookmark*.
+    Warn on missing bookmarks or COM errors but continue the run.
     """
-    own = word_app is None
-    if own:
+    own_session = word_app is None
+    if own_session:
         word_app, doc = _open_word(doc_path, readonly_template)
 
     try:
         if not doc.Bookmarks.Exists(bookmark):
-            print(f"⚠️  Bookmark '{bookmark}' not found → skipping")
+            logging.warning(f"Bookmark '{bookmark}' not found → skipping")
             return
 
+        # Insert the text
         rng = doc.Bookmarks(bookmark).Range
         rng.Text = str(text)
+
+        # Re-create the bookmark (inserting text removes the original)
         doc.Bookmarks.Add(bookmark, rng)
-        print(f"✅  Wrote {text!r} into bookmark '{bookmark}'")
+        logging.info(f"Wrote {text!r} into bookmark '{bookmark}'")
 
     except pythoncom.com_error as e:
-        print(f"⚠️  Error on bookmark '{bookmark}': {e}")
+        logging.warning(f"COM error on bookmark '{bookmark}': {e}")
+    except Exception as e:
+        logging.warning(f"Unexpected error on bookmark '{bookmark}': {e}")
 
     finally:
-        if own:
-            # save + tear down
+        if own_session:
+            # Save and clean up if we opened Word ourselves
             try:
                 if readonly_template:
                     doc.SaveAs2(doc_path)
@@ -73,5 +80,6 @@ def write_to_bookmark(
             except Exception:
                 pass
 
-# backwards‐compatible alias
+
+# Backwards-compatible alias
 write_value_to_bookmark = write_to_bookmark
