@@ -2,28 +2,26 @@
 from pathlib import Path
 import argparse
 
-from gslide.excel_reader import get_value
-from gslide.word_writer import write_to_bookmark
+from gslide.excel_reader import _open_excel, _safe_close
+from gslide.word_writer import _open_word
 
-# number-to-words conversion for MarketRent1_text
+# number-to-words conversion for text formatting
 try:
     from num2words import num2words
 except ImportError:
     raise ImportError("num2words library is required for writing numbers in words. Install with 'pip install num2words'.")
 
-print("🔄 running updated script…")
+print("🔄 running optimized script…")
 
 def load_mappings_from_excel(config_path: str):
     """
     Read an Excel config file with columns:
       Sheet Name | Cell | Bookmark | Formatting
     Returns list of tuples: (sheet, cell, bookmark, fmt_spec)
+    
+    If Formatting is blank, the value will be converted to text (words).
     """
-    try:
-        import pandas as pd
-    except ImportError:
-        raise ImportError("pandas is required to load mappings from Excel. Install with 'pip install pandas'.")
-
+    import pandas as pd
     df = pd.read_excel(config_path, engine='openpyxl')
     mappings = []
     for _, row in df.iterrows():
@@ -39,78 +37,115 @@ def load_mappings_from_excel(config_path: str):
     return mappings
 
 
+def format_number_as_words(value):
+    """Convert a number to words with proper formatting."""
+    if value is None or value == "":
+        return "(Not Available)"
+    
+    try:
+        num = float(value)
+        words = num2words(int(num), to='cardinal', lang='en').title() + ' Dollars'
+        
+        # Add commas for better readability in large numbers
+        if num >= 1000000:
+            words = words.replace(" Thousand", ", Thousand")
+            words = words.replace(" Million", ", Million")
+            words = words.replace(" Billion", ", Billion")
+            # Clean up any double commas
+            words = words.replace(", ,", ",")
+            words = words.replace("  ", " ")
+        
+        # Wrap in parentheses
+        return f"({words})"
+    except:
+        return f"({str(value)})"
+
+
+def format_number(value, fmt_spec):
+    """Format a number according to the provided format specification."""
+    if value is None or value == "":
+        return "None"  # or use another placeholder of your choice
+    
+    try:
+        num = float(value)
+        return fmt_spec.format(num) if fmt_spec else f"{num:,.0f}"
+    except:
+        return str(value)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Copy multiple Excel cells into Word bookmarks"
+        description="Copy multiple Excel cells into Word bookmarks (optimized)"
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
-        '--config',
-        help='Path to Excel file listing mappings (Sheet Name, Cell, Bookmark, Formatting)'
+        '--config', help='Excel config file listing mappings'
     )
     group.add_argument(
-        '--mapping',
-        action='append',
-        nargs='+',
-        help=(
-            "One or more manual mappings; each is: sheet cell bookmark [format]\n"
-            "e.g. --mapping 'PRP ValSum' F22 MarketRent1 '{:,.0f}'"
-        )
+        '--mapping', action='append', nargs='+',
+        help="sheet cell bookmark [format]"
     )
-    parser.add_argument(
-        '--excel', required=True,
-        help='Path to the Excel workbook (.xlsx)'
-    )
-    parser.add_argument(
-        '--word', required=True,
-        help='Path to the Word document (.docx/.docm)'
-    )
+    parser.add_argument('--excel', required=True, help='Path to Excel workbook')
+    parser.add_argument('--word', required=True, help='Path to Word document')
     args = parser.parse_args()
 
-    # Make paths absolute
+    # resolve paths
     args.excel = str(Path(args.excel).expanduser().resolve())
     args.word = str(Path(args.word).expanduser().resolve())
 
-    # Determine mappings from config or manual
-    if getattr(args, 'config', None):
-        cfg_path = str(Path(args.config).expanduser().resolve())
-        mappings = load_mappings_from_excel(cfg_path)
-        print(f"🔢 Loaded {len(mappings)} mappings from config '{cfg_path}'")
+    # load mappings
+    if args.config:
+        mappings = load_mappings_from_excel(args.config)
+        print(f"🔢 Loaded {len(mappings)} mappings from '{args.config}'")
     else:
         mappings = []
-        for mapping in args.mapping:
-            if len(mapping) not in (3, 4):
-                parser.error(f"Invalid mapping: {mapping}. Must be 3 or 4 parts.")
-            sheet, cell, bookmark = mapping[:3]
-            fmt = mapping[3] if len(mapping) == 4 else None
-            mappings.append((sheet, cell, bookmark, fmt))
+        for m in args.mapping:
+            if len(m) not in (3, 4):
+                parser.error(f"Invalid mapping {m}")
+            mappings.append((m[0], m[1], m[2], m[3] if len(m)==4 else None))
 
-    # Process each mapping (skip any *_text bookmarks to avoid overwriting special text)
-    for sheet, cell, bookmark, fmt_spec in mappings:
-        if bookmark.endswith('_text'):
-            continue
-
-        raw_value = get_value(args.excel, sheet, cell)
-        try:
-            num = float(raw_value)
-            formatted = fmt_spec.format(num) if fmt_spec else f"{num:,.0f}"
-        except Exception:
-            formatted = str(raw_value)
-
-        write_to_bookmark(args.word, bookmark, formatted)
-        print(f"✅ Wrote numeric {formatted!r} into bookmark '{bookmark}'")
-
-        # special number-to-words for the main market rent
-        if bookmark == 'MarketRent1':
+    # --- open Excel once ---
+    xl, wb = _open_excel(args.excel)
+    try:
+        raw_values = {}
+        for sheet, cell, bookmark, fmt in mappings:
             try:
-                num_int = int(float(raw_value))
-                words = num2words(num_int, to='cardinal', lang='en').title() + ' Dollars'
+                val = wb.Worksheets(sheet).Range(cell).Value
             except Exception:
-                words = str(raw_value)
-            text_value = f"({words})"
-            write_to_bookmark(args.word, f"{bookmark}_text", text_value)
-            print(f"✅ Wrote text {text_value!r} into bookmark '{bookmark}_text'")
+                val = None
+            raw_values[(sheet, cell)] = val
+    finally:
+        _safe_close(xl, wb)
 
+    # --- open Word once ---
+    word_app, doc = _open_word(args.word)
+    try:
+        for sheet, cell, bookmark, fmt in mappings:
+            raw = raw_values.get((sheet, cell))
+            
+            # Format based on whether formatting is specified
+            if fmt is None or fmt == "":
+                # Handle as text (words)
+                formatted = format_number_as_words(raw)
+                format_type = "text"
+            else:
+                # Handle as numeric with the specified format
+                formatted = format_number(raw, fmt)
+                format_type = "numeric"
+            
+            # Write to bookmark
+            try:
+                rng = doc.Bookmarks(bookmark).Range
+                rng.Text = formatted
+                doc.Bookmarks.Add(bookmark, rng)
+                print(f"✅ Wrote {format_type} '{formatted}' into '{bookmark}'")
+            except Exception as e:
+                print(f"❌ Error writing to bookmark '{bookmark}': {e}")
+
+        doc.Save()
+    finally:
+        doc.Close(False)
+        word_app.Quit()
 
 if __name__ == '__main__':
     main()
