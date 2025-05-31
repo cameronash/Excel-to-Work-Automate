@@ -1,0 +1,67 @@
+graph TD
+    %% OVERALL SYSTEM FLOW
+    subgraph "📁 Input Files"
+        A[Excel Workbook<br/>Sample.xlsx]
+        B[Word Template<br/>Template.docx]
+        C[Config File<br/>g-slide mapping.xlsx]
+    end
+    
+    subgraph "🖥️ User Interface"
+        D[GUI Application<br/>gui_tk.py]
+        E[Command Line<br/>run_value_into_word.py]
+    end
+    
+    subgraph "⚙️ Core Processing"
+        F[Main Script Logic<br/>Orchestration]
+        G[Excel Reader<br/>COM Automation]
+        H[Word Writer<br/>COM Automation]
+    end
+    
+    subgraph "📊 Microsoft Office"
+        I[Excel.exe Process<br/>Background]
+        J[Word.exe Process<br/>Background]
+    end
+    
+    subgraph "📄 Output"
+        K[Populated Word Document<br/>Final Report]
+    end
+    
+    %% User starts process
+    A --> D
+    B --> D
+    C --> D
+    A --> E
+    B --> E
+    C --> E
+    
+    %% Interface triggers main logic
+    D --> F
+    E --> F
+    
+    %% Main logic coordinates readers/writers
+    F --> G
+    F --> H
+    
+    %% Readers/writers control Office apps
+    G --> I
+    H --> J
+    
+    %% Office apps process files
+    I --> A
+    J --> B
+    
+    %% Final output
+    H --> K
+    
+    %% Styling
+    classDef inputFile fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef userInterface fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef processing fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef office fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef output fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class A,B,C inputFile
+    class D,E userInterface
+    class F,G,H processing
+    class I,J office
+    class K output
