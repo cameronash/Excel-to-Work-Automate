@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Copy Excel charts to bookmarks in a Word document."""
+
+from __future__ import annotations
+
+import argparse
+import tempfile
+from pathlib import Path
+
+from gslide.excel_reader import _open_excel, _safe_close
+from gslide.word_writer import _open_word, paste_image_at_bookmark
+
+
+def export_chart(wb, sheet: str, chart_name: str) -> str:
+    """Export a chart as an EMF file and return the path."""
+    chart_obj = wb.Worksheets(sheet).ChartObjects(chart_name)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".emf") as tmp:
+        chart_obj.Chart.Export(tmp.name)
+        return tmp.name
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Copy charts from Excel to Word")
+    parser.add_argument("--excel", required=True, help="Path to the Excel workbook")
+    parser.add_argument("--word", required=True, help="Path to the Word document")
+    parser.add_argument(
+        "--mapping",
+        action="append",
+        nargs=3,
+        metavar=("sheet", "chart", "bookmark"),
+        help="Sheet name, chart name, bookmark",
+    )
+    args = parser.parse_args()
+
+    excel_path = str(Path(args.excel).expanduser().resolve())
+    word_path = str(Path(args.word).expanduser().resolve())
+    mappings = args.mapping or []
+
+    xl, wb = _open_excel(excel_path)
+    word_app, doc = _open_word(word_path)
+    try:
+        for sheet, chart_name, bookmark in mappings:
+            img_path = export_chart(wb, sheet, chart_name)
+            try:
+                paste_image_at_bookmark(word_path, bookmark, img_path, word_app=word_app, doc=doc)
+            finally:
+                Path(img_path).unlink(missing_ok=True)
+        doc.Save()
+    finally:
+        doc.Close(False)
+        word_app.Quit()
+        _safe_close(xl, wb)
+
+
+if __name__ == "__main__":
+    main()

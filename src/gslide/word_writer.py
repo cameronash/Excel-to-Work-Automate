@@ -83,3 +83,55 @@ def write_to_bookmark(
 
 # Backwards-compatible alias
 write_value_to_bookmark = write_to_bookmark
+
+
+def paste_image_at_bookmark(
+    doc_path: str,
+    bookmark: str,
+    img_path: str,
+    *,
+    word_app: win32.Dispatch | None = None,
+    doc=None,
+    readonly_template: bool = True,
+    width_pts: int | None = None,
+) -> None:
+    """Insert an image at a Word *bookmark* and re-create the bookmark."""
+    own_session = word_app is None
+    if own_session:
+        word_app, doc = _open_word(doc_path, readonly_template)
+
+    try:
+        if not doc.Bookmarks.Exists(bookmark):
+            logging.warning(f"Bookmark '{bookmark}' not found → skipping")
+            return
+
+        rng = doc.Bookmarks(bookmark).Range
+        shape = rng.InlineShapes.AddPicture(img_path, LinkToFile=False, SaveWithDocument=True)
+        if width_pts is not None:
+            shape.LockAspectRatio = True
+            shape.Width = width_pts
+
+        doc.Bookmarks.Add(bookmark, shape.Range)
+        logging.info(f"Inserted image {img_path!r} into bookmark '{bookmark}'")
+
+    except pythoncom.com_error as e:
+        logging.warning(f"COM error on bookmark '{bookmark}': {e}")
+    except Exception as e:
+        logging.warning(f"Unexpected error on bookmark '{bookmark}': {e}")
+    finally:
+        if own_session:
+            try:
+                if readonly_template:
+                    doc.SaveAs2(doc_path)
+                else:
+                    doc.Save()
+            except Exception:
+                pass
+            try:
+                doc.Close(False)
+            except Exception:
+                pass
+            try:
+                word_app.Quit()
+            except Exception:
+                pass
