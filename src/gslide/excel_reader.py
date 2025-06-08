@@ -8,7 +8,7 @@ code can stay tidy.  It works in two steps:
 1.  Open Excel invisibly via win32com ─ returning the workbook handle.
 2.  Either pull a cell value or copy an arbitrary range as a bitmap which is
     then written to a temporary **Enhanced Metafile** (.emf) that Word /
-    PowerPoint can embed loss‑lessly.
+    PowerPoint can embed losslessly.
 
 The implementation is careful to clean Excel up even when things go wrong and
 tries to survive the flaky clipboard behaviour some Windows builds exhibit.
@@ -54,6 +54,7 @@ def _open_excel(path: str):
     Excel COM is initialized at the module level, so we don't need to
     initialize it again here.
     """
+    xl = None
     try:
         xl = win32.Dispatch("Excel.Application")
         try:
@@ -68,6 +69,11 @@ def _open_excel(path: str):
         wb = xl.Workbooks.Open(path, ReadOnly=True)
         return xl, wb
     except Exception as e:
+        # ensure any created Excel instance is cleaned up on failure
+        try:
+            xl.Quit()
+        except Exception:
+            pass
         logger.error(f"Failed to open Excel: {e}")
         raise
 
@@ -149,7 +155,8 @@ def copy_range_as_emf(
         If the clipboard never receives an image of the copied range.
     """
     # Use a secure temporary file
-    tmp_path = Path(tempfile.mktemp(suffix=".emf"))
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".emf") as f:
+        tmp_path = Path(f.name)
     
     # Track if we succeeded
     success = False
