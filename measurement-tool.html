@@ -61,10 +61,7 @@
       min-height: 30px;
       display: flex;
       align-items: center;
-      gap: 8px;
     }
-
-    #status-text { flex: 1; }
 
     /* ── Canvas ── */
     #canvas-wrap {
@@ -97,89 +94,10 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.4);
     }
 
-    #area-badge .area-m2 {
-      font-size: 2.4rem;
-      font-weight: 800;
-      line-height: 1.1;
-    }
+    #area-badge .area-m2   { font-size: 2.4rem; font-weight: 800; line-height: 1.1; }
+    #area-badge .area-label{ font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
 
-    #area-badge .area-label {
-      font-size: 0.85rem;
-      opacity: 0.85;
-      margin-top: 4px;
-    }
-
-    /* ── Measurement modal ── */
-    #modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #modal-overlay.show { display: flex; }
-
-    #modal {
-      background: #16213e;
-      border: 2px solid #0f3460;
-      border-radius: 16px;
-      padding: 28px 32px;
-      width: min(360px, 90vw);
-      text-align: center;
-    }
-
-    #modal h2 {
-      font-size: 1.1rem;
-      color: #e94560;
-      margin-bottom: 8px;
-    }
-
-    #modal p {
-      font-size: 0.82rem;
-      color: #aac;
-      margin-bottom: 18px;
-    }
-
-    #modal .input-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    #modal input[type=number] {
-      flex: 1;
-      padding: 12px 14px;
-      font-size: 1.4rem;
-      border: 2px solid #0f3460;
-      border-radius: 10px;
-      background: #1a1a2e;
-      color: #fff;
-      text-align: right;
-      outline: none;
-      -moz-appearance: textfield;
-    }
-
-    #modal input[type=number]:focus { border-color: #e94560; }
-
-    #modal .unit {
-      font-size: 1.2rem;
-      color: #aac;
-      font-weight: 700;
-      min-width: 28px;
-    }
-
-    .modal-btns { display: flex; gap: 10px; }
-
-    .modal-btns .btn { flex: 1; font-size: 1rem; padding: 12px; }
-
-    #btn-confirm { background: #e94560; color: #fff; }
-    #btn-skip    { background: #0f3460; color: #aac; }
-
-    /* ── Snap indicator (shown in canvas) ── */
+    /* ── Snap hint ── */
     #snap-hint {
       display: none;
       position: absolute;
@@ -194,6 +112,111 @@
       pointer-events: none;
       font-weight: 600;
     }
+
+    /* ── Measurement modal ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-overlay.show { display: flex; }
+
+    #modal {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 18px;
+      padding: 20px 20px 16px;
+      width: min(320px, 94vw);
+      text-align: center;
+    }
+
+    #modal h2 {
+      font-size: 1rem;
+      color: #e94560;
+      margin-bottom: 4px;
+    }
+
+    #modal-desc {
+      font-size: 0.78rem;
+      color: #aac;
+      margin-bottom: 12px;
+    }
+
+    /* Number display */
+    #keypad-display {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #1a1a2e;
+      border: 2px solid #0f3460;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      min-height: 52px;
+    }
+
+    #keypad-display .kd-value {
+      flex: 1;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      text-align: right;
+      letter-spacing: 0.03em;
+      word-break: break-all;
+    }
+
+    #keypad-display .kd-unit {
+      font-size: 1.1rem;
+      color: #aac;
+      font-weight: 600;
+    }
+
+    #keypad-display.error { border-color: #e94560; }
+
+    /* Keypad grid */
+    #keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .kp-btn {
+      background: #0f3460;
+      color: #eef;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      padding: 0;
+      height: 58px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kp-btn:active { background: #1a4a8a; }
+    .kp-btn.kp-del { font-size: 1.2rem; color: #e94560; }
+
+    /* Modal action buttons */
+    #modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 8px;
+    }
+
+    #modal-actions .btn { font-size: 1rem; padding: 13px; }
+    #btn-skip    { background: #0f3460; color: #aac; }
+    #btn-confirm { background: #e94560; color: #fff; font-size: 1.1rem; }
   </style>
 </head>
 <body>
@@ -218,21 +241,41 @@
     <div class="area-m2" id="area-value">0.00 m²</div>
     <div class="area-label">Total Floor Area</div>
   </div>
-  <div id="snap-hint">Release to close the shape</div>
+  <div id="snap-hint">Tap to close the shape</div>
 </div>
 
-<!-- Measurement input modal -->
+<!-- Measurement modal with keypad -->
 <div id="modal-overlay">
   <div id="modal">
     <h2>Wall Length</h2>
     <p id="modal-desc">How long is this wall?</p>
-    <div class="input-row">
-      <input id="measure-input" type="number" min="0.01" step="0.01" placeholder="0.00">
-      <span class="unit">m</span>
+
+    <!-- Number display -->
+    <div id="keypad-display">
+      <span class="kd-value" id="kd-value">—</span>
+      <span class="kd-unit">m</span>
     </div>
-    <div class="modal-btns">
+
+    <!-- Keypad -->
+    <div id="keypad-grid">
+      <button class="kp-btn" data-key="7">7</button>
+      <button class="kp-btn" data-key="8">8</button>
+      <button class="kp-btn" data-key="9">9</button>
+      <button class="kp-btn" data-key="4">4</button>
+      <button class="kp-btn" data-key="5">5</button>
+      <button class="kp-btn" data-key="6">6</button>
+      <button class="kp-btn" data-key="1">1</button>
+      <button class="kp-btn" data-key="2">2</button>
+      <button class="kp-btn" data-key="3">3</button>
+      <button class="kp-btn" data-key=".">.</button>
+      <button class="kp-btn" data-key="0">0</button>
+      <button class="kp-btn kp-del" data-key="del">⌫</button>
+    </div>
+
+    <!-- Actions -->
+    <div id="modal-actions">
       <button class="btn" id="btn-skip">Skip</button>
-      <button class="btn" id="btn-confirm">OK &#10003;</button>
+      <button class="btn" id="btn-confirm">OK ✓</button>
     </div>
   </div>
 </div>
@@ -241,22 +284,22 @@
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-const canvas  = document.getElementById('canvas');
-const ctx     = canvas.getContext('2d');
-const wrap    = document.getElementById('canvas-wrap');
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvas-wrap');
 
-let points    = [];   // [{x, y}] pixel coords of placed vertices
-let segments  = [];   // [{x1,y1,x2,y2,meters,pixels}] completed walls
-let cursor    = null; // live pointer position {x,y}
+let points    = [];   // [{x, y}] current display pixel coords
+let segments  = [];   // see addSegment() for shape
+let cursor    = null;
 let closed    = false;
 let snapActive = false;
 
-const SNAP_R  = 24;   // pixels – snap radius to close shape
-const DOT_R   = 8;    // vertex dot radius
-const FIRST_R = 12;   // first-point dot radius (bigger target)
+const SNAP_R  = 28;
+const DOT_R   = 8;
+const FIRST_R = 13;
 
 // ─────────────────────────────────────────────
-//  RESIZE CANVAS
+//  RESIZE
 // ─────────────────────────────────────────────
 function resizeCanvas() {
   const r = wrap.getBoundingClientRect();
@@ -264,12 +307,59 @@ function resizeCanvas() {
   canvas.height = r.height;
   redraw();
 }
-
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // ─────────────────────────────────────────────
-//  POINTER EVENTS  (mouse + touch + stylus)
+//  SEGMENT HELPERS
+// ─────────────────────────────────────────────
+function addSegment(p1, p2) {
+  const origPx = dist(p1, p2);
+  segments.push({
+    x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+    meters: null,
+    origPx,                              // drawn pixel length — never changes
+    angle: Math.atan2(p2.y - p1.y, p2.x - p1.x)  // drawn direction — never changes
+  });
+}
+
+// pixels-per-metre from all labeled segments (using origPx)
+function ppm() {
+  const lbl = segments.filter(s => s.meters != null && s.origPx > 0);
+  if (!lbl.length) return null;
+  const totalPx = lbl.reduce((a, s) => a + s.origPx, 0);
+  const totalM  = lbl.reduce((a, s) => a + s.meters, 0);
+  return totalPx / totalM;
+}
+
+// metres-per-pixel (for preview labels)
+function mpp() { const p = ppm(); return p ? 1 / p : null; }
+
+// After any measurement change, rebuild point positions so all labeled
+// segments have pixel lengths proportional to their metre values.
+function rescalePoints() {
+  const scale = ppm();
+  if (!scale) return;
+
+  let cx = points[0].x, cy = points[0].y;
+
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i];
+    // labeled segments get exact proportional length; unlabeled keep origPx
+    const len = s.meters != null ? s.meters * scale : s.origPx;
+    const nx  = cx + Math.cos(s.angle) * len;
+    const ny  = cy + Math.sin(s.angle) * len;
+
+    s.x1 = cx; s.y1 = cy;
+    s.x2 = nx; s.y2 = ny;
+
+    if (i + 1 < points.length) points[i + 1] = { x: nx, y: ny };
+    cx = nx; cy = ny;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  POINTER EVENTS
 // ─────────────────────────────────────────────
 canvas.addEventListener('pointermove', e => {
   if (closed) return;
@@ -281,8 +371,7 @@ canvas.addEventListener('pointermove', e => {
 });
 
 canvas.addEventListener('pointerleave', () => {
-  cursor = null;
-  snapActive = false;
+  cursor = null; snapActive = false;
   document.getElementById('snap-hint').style.display = 'none';
   redraw();
 });
@@ -291,24 +380,18 @@ canvas.addEventListener('pointerup', e => {
   if (closed) return;
   const pt = clientToCanvas(e);
 
-  // Snap-to-close
   if (points.length > 1 && dist(pt, points[0]) < SNAP_R) {
-    closeShape();
-    return;
+    closeShape(); return;
   }
 
-  points.push({x: pt.x, y: pt.y});
+  points.push({ x: pt.x, y: pt.y });
 
   if (points.length > 1) {
-    const p1 = points[points.length - 2];
-    const p2 = points[points.length - 1];
-    const px = dist(p1, p2);
-    segments.push({x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, meters: null, pixels: px});
+    addSegment(points[points.length - 2], points[points.length - 1]);
     askMeasurement(segments.length - 1);
   }
 
-  redraw();
-  updateStatus();
+  redraw(); updateStatus();
 });
 
 // ─────────────────────────────────────────────
@@ -316,16 +399,12 @@ canvas.addEventListener('pointerup', e => {
 // ─────────────────────────────────────────────
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Grid
   drawGrid();
-
-  // Completed segments
   segments.forEach((s, i) => drawSegment(s, i));
 
-  // Preview line from last point to cursor
+  // Preview line
   if (!closed && cursor && points.length > 0) {
-    const last = points[points.length - 1];
+    const last   = points[points.length - 1];
     const target = (snapActive && points.length > 1) ? points[0] : cursor;
     ctx.beginPath();
     ctx.setLineDash([8, 6]);
@@ -336,22 +415,19 @@ function redraw() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Preview length
     if (!snapActive) {
+      const scale = mpp();
       const px = dist(last, cursor);
-      const scale = estimateScale();
       if (scale && px > 20) {
-        const approx = (px * scale).toFixed(2);
-        drawMidLabel(last.x, last.y, cursor.x, cursor.y, `~${approx} m`, '#999');
+        drawMidLabel(last.x, last.y, cursor.x, cursor.y, `~${(px * scale).toFixed(2)} m`, '#999');
       }
     }
   }
 
   // Vertex dots
   points.forEach((p, i) => {
-    const r = i === 0 ? FIRST_R : DOT_R;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, i === 0 ? FIRST_R : DOT_R, 0, Math.PI * 2);
     ctx.fillStyle = i === 0 ? '#e94560' : '#0f3460';
     ctx.fill();
     ctx.strokeStyle = '#fff';
@@ -383,7 +459,7 @@ function drawGrid() {
   }
 }
 
-function drawSegment(s, idx) {
+function drawSegment(s) {
   ctx.beginPath();
   ctx.moveTo(s.x1, s.y1);
   ctx.lineTo(s.x2, s.y2);
@@ -392,35 +468,29 @@ function drawSegment(s, idx) {
   ctx.setLineDash([]);
   ctx.stroke();
 
-  // Label
   const label = s.meters != null ? `${s.meters} m` : '? m';
   const color = s.meters != null ? '#1a1a2e' : '#e94560';
   drawMidLabel(s.x1, s.y1, s.x2, s.y2, label, color);
 }
 
 function drawMidLabel(x1, y1, x2, y2, text, color) {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
   const angle = Math.atan2(y2 - y1, x2 - x1);
+  const flip  = (angle > Math.PI / 2 || angle < -Math.PI / 2) ? Math.PI : 0;
 
   ctx.save();
   ctx.translate(mx, my);
-  // Keep text readable (never upside-down)
-  const flip = (angle > Math.PI / 2 || angle < -Math.PI / 2) ? Math.PI : 0;
   ctx.rotate(angle + flip);
 
   const pad = 5;
   ctx.font = 'bold 13px Segoe UI, sans-serif';
   const tw = ctx.measureText(text).width;
-
-  ctx.fillStyle = 'rgba(255,255,255,0.82)';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.fillRect(-tw / 2 - pad, -12 - pad, tw + pad * 2, 14 + pad * 2);
-
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillText(text, 0, 0);
-
   ctx.restore();
 }
 
@@ -429,39 +499,27 @@ function drawMidLabel(x1, y1, x2, y2, text, color) {
 // ─────────────────────────────────────────────
 function closeShape() {
   if (points.length < 3) return;
-
-  // Add closing segment
-  const p1 = points[points.length - 1];
-  const p2 = points[0];
-  const px = dist(p1, p2);
-  segments.push({x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, meters: null, pixels: px});
+  addSegment(points[points.length - 1], points[0]);
 
   askMeasurement(segments.length - 1, () => {
     closed = true;
-    cursor = null;
-    snapActive = false;
+    cursor = null; snapActive = false;
     document.getElementById('snap-hint').style.display = 'none';
     showArea();
-    redraw();
-    updateStatus();
+    redraw(); updateStatus();
   });
 }
 
 function showArea() {
-  const scale = estimateScale();
+  const scale = mpp();
   const badge = document.getElementById('area-badge');
+  if (!scale) { badge.style.display = 'none'; return; }
 
-  if (!scale) {
-    badge.style.display = 'none';
-    return;
-  }
-
-  // Shoelace on pixel coords, then scale²
+  // Shoelace on (now proportionally rescaled) point coords
   let area = 0;
   for (let i = 0; i < points.length; i++) {
     const j = (i + 1) % points.length;
-    area += points[i].x * points[j].y;
-    area -= points[j].x * points[i].y;
+    area += points[i].x * points[j].y - points[j].x * points[i].y;
   }
   area = Math.abs(area) / 2;
   const realArea = area * scale * scale;
@@ -471,51 +529,61 @@ function showArea() {
   updateStatus(`Shape closed — Area: ${realArea.toFixed(2)} m²`);
 }
 
-function estimateScale() {
-  const measured = segments.filter(s => s.meters != null && s.pixels > 0);
-  if (measured.length === 0) return null;
-  // Weighted average: total_meters / total_pixels
-  const totalM  = measured.reduce((s, seg) => s + seg.meters, 0);
-  const totalPx = measured.reduce((s, seg) => s + seg.pixels, 0);
-  return totalM / totalPx;
+// ─────────────────────────────────────────────
+//  KEYPAD MODAL
+// ─────────────────────────────────────────────
+let kdValue    = '';   // string being built by keypad
+let afterMeasure = null;
+
+function setKdDisplay(str) {
+  kdValue = str;
+  document.getElementById('kd-value').textContent = str === '' ? '—' : str;
+  document.getElementById('keypad-display').classList.remove('error');
 }
 
-// ─────────────────────────────────────────────
-//  MEASUREMENT MODAL
-// ─────────────────────────────────────────────
-let afterMeasure = null;
+// Wire up keypad buttons
+document.getElementById('keypad-grid').addEventListener('pointerup', e => {
+  const btn = e.target.closest('.kp-btn');
+  if (!btn) return;
+  const key = btn.dataset.key;
+
+  if (key === 'del') {
+    setKdDisplay(kdValue.slice(0, -1));
+  } else if (key === '.') {
+    if (!kdValue.includes('.')) setKdDisplay(kdValue + '.');
+  } else {
+    // Prevent more than 2 decimal places
+    const dotPos = kdValue.indexOf('.');
+    if (dotPos !== -1 && kdValue.length - dotPos > 2) return;
+    setKdDisplay(kdValue + key);
+  }
+});
 
 function askMeasurement(segIdx, callback) {
   const s = segments[segIdx];
-  const scale = estimateScale();
-  let hint = '';
-  if (scale) {
-    hint = ` (estimated ~${(s.pixels * scale).toFixed(2)} m)`;
-  }
-  document.getElementById('modal-desc').textContent = `How long is wall ${segIdx + 1}?${hint}`;
-  document.getElementById('measure-input').value = '';
+  const scale = mpp();
+  let hint = scale ? ` (~${(s.origPx * scale).toFixed(2)} m drawn)` : '';
+  document.getElementById('modal-desc').textContent = `Wall ${segIdx + 1} — how long is it?${hint}`;
+  setKdDisplay('');
   document.getElementById('modal-overlay').classList.add('show');
 
-  // Focus after a tick (iOS fix)
-  setTimeout(() => document.getElementById('measure-input').focus(), 80);
-
   afterMeasure = (meters) => {
-    if (meters !== null) segments[segIdx].meters = meters;
+    if (meters !== null) {
+      segments[segIdx].meters = meters;
+      rescalePoints();   // ← redraw all lines proportionally
+    }
     document.getElementById('modal-overlay').classList.remove('show');
     redraw();
-    if (callback) callback();
-    else updateStatus();
+    if (callback) callback(); else updateStatus();
   };
 }
 
 document.getElementById('btn-confirm').addEventListener('click', () => {
-  const v = parseFloat(document.getElementById('measure-input').value);
-  if (isNaN(v) || v <= 0) {
-    document.getElementById('measure-input').style.borderColor = '#e94560';
-    document.getElementById('measure-input').focus();
+  const v = parseFloat(kdValue);
+  if (!kdValue || isNaN(v) || v <= 0) {
+    document.getElementById('keypad-display').classList.add('error');
     return;
   }
-  document.getElementById('measure-input').style.borderColor = '';
   if (afterMeasure) afterMeasure(v);
 });
 
@@ -523,9 +591,20 @@ document.getElementById('btn-skip').addEventListener('click', () => {
   if (afterMeasure) afterMeasure(null);
 });
 
-document.getElementById('measure-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('btn-confirm').click();
-  if (e.key === 'Escape') document.getElementById('btn-skip').click();
+// Physical keyboard still works on Surface Pro keyboard cover
+window.addEventListener('keydown', e => {
+  if (!document.getElementById('modal-overlay').classList.contains('show')) return;
+  if (e.key >= '0' && e.key <= '9') {
+    document.querySelector(`.kp-btn[data-key="${e.key}"]`).dispatchEvent(new PointerEvent('pointerup', {bubbles:true}));
+  } else if (e.key === '.') {
+    document.querySelector('.kp-btn[data-key="."]').dispatchEvent(new PointerEvent('pointerup', {bubbles:true}));
+  } else if (e.key === 'Backspace') {
+    document.querySelector('.kp-btn.kp-del').dispatchEvent(new PointerEvent('pointerup', {bubbles:true}));
+  } else if (e.key === 'Enter') {
+    document.getElementById('btn-confirm').click();
+  } else if (e.key === 'Escape') {
+    document.getElementById('btn-skip').click();
+  }
 });
 
 // ─────────────────────────────────────────────
@@ -533,34 +612,28 @@ document.getElementById('measure-input').addEventListener('keydown', e => {
 // ─────────────────────────────────────────────
 document.getElementById('btn-undo').addEventListener('click', () => {
   if (closed) {
-    // reopen shape
     closed = false;
     document.getElementById('area-badge').style.display = 'none';
     segments.pop();
     points.pop();
-    redraw();
-    updateStatus();
+    redraw(); updateStatus();
     return;
   }
   if (segments.length > 0) segments.pop();
   if (points.length > 0) points.pop();
-  redraw();
-  updateStatus();
+  redraw(); updateStatus();
 });
 
 document.getElementById('btn-clear').addEventListener('click', () => {
-  if (points.length === 0) return;
+  if (!points.length) return;
   if (!confirm('Clear the current drawing?')) return;
   points = []; segments = []; cursor = null; closed = false; snapActive = false;
   document.getElementById('area-badge').style.display = 'none';
   document.getElementById('snap-hint').style.display = 'none';
-  redraw();
-  updateStatus();
+  redraw(); updateStatus();
 });
 
 document.getElementById('btn-save').addEventListener('click', () => {
-  // Temporarily hide area badge from canvas (it's an overlay div, not on canvas)
-  // just snapshot the canvas
   const link = document.createElement('a');
   link.download = `site-measurement-${Date.now()}.png`;
   link.href = canvas.toDataURL('image/png');
@@ -574,14 +647,16 @@ function updateStatus(msg) {
   const el = document.getElementById('status-text');
   if (msg) { el.textContent = msg; return; }
   if (closed) {
-    el.textContent = 'Shape complete. Press Undo to edit, or Clear to start over.';
-  } else if (points.length === 0) {
-    el.textContent = 'Tap anywhere to place your first point.';
+    el.textContent = 'Shape complete. Undo to edit last wall, or Clear to start over.';
+  } else if (!points.length) {
+    el.textContent = 'Tap anywhere to place your first corner.';
   } else if (points.length === 1) {
-    el.textContent = 'Tap to place the next point (corner of the room).';
+    el.textContent = 'Tap to place the next corner.';
   } else {
     const n = segments.filter(s => s.meters == null).length;
-    el.textContent = `${points.length} points, ${segments.length} walls.${n > 0 ? ` ${n} wall(s) still need a measurement.` : ''} Tap near the first point (red dot) to close the shape.`;
+    el.textContent = `${segments.length} wall${segments.length !== 1 ? 's' : ''}.`
+      + (n ? ` ${n} still need a length.` : '')
+      + ' Tap the red dot to close & calculate area.';
   }
 }
 
