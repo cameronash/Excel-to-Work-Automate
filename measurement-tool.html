@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Site Measurement Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #16213e;
+      border-bottom: 2px solid #0f3460;
+      flex-shrink: 0;
+    }
+
+    #topbar h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e94560;
+      letter-spacing: 0.05em;
+      flex: 1;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 40px;
+      min-width: 44px;
+    }
+
+    #btn-undo  { background: #0f3460; color: #aac; }
+    #btn-clear { background: #e94560; color: #fff; }
+    #btn-save  { background: #27ae60; color: #fff; }
+
+    /* ── Status bar ── */
+    #statusbar {
+      padding: 5px 12px;
+      background: #0f3460;
+      font-size: 0.8rem;
+      color: #aac;
+      flex-shrink: 0;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #status-text { flex: 1; }
+
+    /* ── Canvas ── */
+    #canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      background: #f8f9fa;
+      cursor: crosshair;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Area badge ── */
+    #area-badge {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(39, 174, 96, 0.92);
+      color: #fff;
+      border-radius: 16px;
+      padding: 18px 32px;
+      text-align: center;
+      pointer-events: none;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    #area-badge .area-m2 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    #area-badge .area-label {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    /* ── Measurement modal ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-overlay.show { display: flex; }
+
+    #modal {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: min(360px, 90vw);
+      text-align: center;
+    }
+
+    #modal h2 {
+      font-size: 1.1rem;
+      color: #e94560;
+      margin-bottom: 8px;
+    }
+
+    #modal p {
+      font-size: 0.82rem;
+      color: #aac;
+      margin-bottom: 18px;
+    }
+
+    #modal .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    #modal input[type=number] {
+      flex: 1;
+      padding: 12px 14px;
+      font-size: 1.4rem;
+      border: 2px solid #0f3460;
+      border-radius: 10px;
+      background: #1a1a2e;
+      color: #fff;
+      text-align: right;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+
+    #modal input[type=number]:focus { border-color: #e94560; }
+
+    #modal .unit {
+      font-size: 1.2rem;
+      color: #aac;
+      font-weight: 700;
+      min-width: 28px;
+    }
+
+    .modal-btns { display: flex; gap: 10px; }
+
+    .modal-btns .btn { flex: 1; font-size: 1rem; padding: 12px; }
+
+    #btn-confirm { background: #e94560; color: #fff; }
+    #btn-skip    { background: #0f3460; color: #aac; }
+
+    /* ── Snap indicator (shown in canvas) ── */
+    #snap-hint {
+      display: none;
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #27ae60;
+      color: #fff;
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 0.82rem;
+      pointer-events: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <h1>Site Measurement Tool</h1>
+  <button class="btn" id="btn-undo">&#8592; Undo</button>
+  <button class="btn" id="btn-clear">Clear</button>
+  <button class="btn" id="btn-save">Save PNG</button>
+</div>
+
+<!-- Status bar -->
+<div id="statusbar">
+  <span id="status-text">Tap anywhere on the canvas to place your first point.</span>
+</div>
+
+<!-- Canvas -->
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+  <div id="area-badge">
+    <div class="area-m2" id="area-value">0.00 m²</div>
+    <div class="area-label">Total Floor Area</div>
+  </div>
+  <div id="snap-hint">Release to close the shape</div>
+</div>
+
+<!-- Measurement input modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>Wall Length</h2>
+    <p id="modal-desc">How long is this wall?</p>
+    <div class="input-row">
+      <input id="measure-input" type="number" min="0.01" step="0.01" placeholder="0.00">
+      <span class="unit">m</span>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" id="btn-skip">Skip</button>
+      <button class="btn" id="btn-confirm">OK &#10003;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const canvas  = document.getElementById('canvas');
+const ctx     = canvas.getContext('2d');
+const wrap    = document.getElementById('canvas-wrap');
+
+let points    = [];   // [{x, y}] pixel coords of placed vertices
+let segments  = [];   // [{x1,y1,x2,y2,meters,pixels}] completed walls
+let cursor    = null; // live pointer position {x,y}
+let closed    = false;
+let snapActive = false;
+
+const SNAP_R  = 24;   // pixels – snap radius to close shape
+const DOT_R   = 8;    // vertex dot radius
+const FIRST_R = 12;   // first-point dot radius (bigger target)
+
+// ─────────────────────────────────────────────
+//  RESIZE CANVAS
+// ─────────────────────────────────────────────
+function resizeCanvas() {
+  const r = wrap.getBoundingClientRect();
+  canvas.width  = r.width;
+  canvas.height = r.height;
+  redraw();
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ─────────────────────────────────────────────
+//  POINTER EVENTS  (mouse + touch + stylus)
+// ─────────────────────────────────────────────
+canvas.addEventListener('pointermove', e => {
+  if (closed) return;
+  cursor = clientToCanvas(e);
+  const near = points.length > 1 && dist(cursor, points[0]) < SNAP_R;
+  snapActive = near;
+  document.getElementById('snap-hint').style.display = near ? 'block' : 'none';
+  redraw();
+});
+
+canvas.addEventListener('pointerleave', () => {
+  cursor = null;
+  snapActive = false;
+  document.getElementById('snap-hint').style.display = 'none';
+  redraw();
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (closed) return;
+  const pt = clientToCanvas(e);
+
+  // Snap-to-close
+  if (points.length > 1 && dist(pt, points[0]) < SNAP_R) {
+    closeShape();
+    return;
+  }
+
+  points.push({x: pt.x, y: pt.y});
+
+  if (points.length > 1) {
+    const p1 = points[points.length - 2];
+    const p2 = points[points.length - 1];
+    const px = dist(p1, p2);
+    segments.push({x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, meters: null, pixels: px});
+    askMeasurement(segments.length - 1);
+  }
+
+  redraw();
+  updateStatus();
+});
+
+// ─────────────────────────────────────────────
+//  DRAW
+// ─────────────────────────────────────────────
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  drawGrid();
+
+  // Completed segments
+  segments.forEach((s, i) => drawSegment(s, i));
+
+  // Preview line from last point to cursor
+  if (!closed && cursor && points.length > 0) {
+    const last = points[points.length - 1];
+    const target = (snapActive && points.length > 1) ? points[0] : cursor;
+    ctx.beginPath();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = snapActive ? '#27ae60' : '#888';
+    ctx.lineWidth = 2;
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Preview length
+    if (!snapActive) {
+      const px = dist(last, cursor);
+      const scale = estimateScale();
+      if (scale && px > 20) {
+        const approx = (px * scale).toFixed(2);
+        drawMidLabel(last.x, last.y, cursor.x, cursor.y, `~${approx} m`, '#999');
+      }
+    }
+  }
+
+  // Vertex dots
+  points.forEach((p, i) => {
+    const r = i === 0 ? FIRST_R : DOT_R;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? '#e94560' : '#0f3460';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  // Snap ring
+  if (snapActive && points.length > 0) {
+    ctx.beginPath();
+    ctx.arc(points[0].x, points[0].y, SNAP_R, 0, Math.PI * 2);
+    ctx.strokeStyle = '#27ae60';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([5, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawGrid() {
+  const step = 50;
+  ctx.strokeStyle = '#dee2e6';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < canvas.width; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+function drawSegment(s, idx) {
+  ctx.beginPath();
+  ctx.moveTo(s.x1, s.y1);
+  ctx.lineTo(s.x2, s.y2);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  ctx.stroke();
+
+  // Label
+  const label = s.meters != null ? `${s.meters} m` : '? m';
+  const color = s.meters != null ? '#1a1a2e' : '#e94560';
+  drawMidLabel(s.x1, s.y1, s.x2, s.y2, label, color);
+}
+
+function drawMidLabel(x1, y1, x2, y2, text, color) {
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+
+  ctx.save();
+  ctx.translate(mx, my);
+  // Keep text readable (never upside-down)
+  const flip = (angle > Math.PI / 2 || angle < -Math.PI / 2) ? Math.PI : 0;
+  ctx.rotate(angle + flip);
+
+  const pad = 5;
+  ctx.font = 'bold 13px Segoe UI, sans-serif';
+  const tw = ctx.measureText(text).width;
+
+  ctx.fillStyle = 'rgba(255,255,255,0.82)';
+  ctx.fillRect(-tw / 2 - pad, -12 - pad, tw + pad * 2, 14 + pad * 2);
+
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(text, 0, 0);
+
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────
+//  CLOSE SHAPE & AREA
+// ─────────────────────────────────────────────
+function closeShape() {
+  if (points.length < 3) return;
+
+  // Add closing segment
+  const p1 = points[points.length - 1];
+  const p2 = points[0];
+  const px = dist(p1, p2);
+  segments.push({x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, meters: null, pixels: px});
+
+  askMeasurement(segments.length - 1, () => {
+    closed = true;
+    cursor = null;
+    snapActive = false;
+    document.getElementById('snap-hint').style.display = 'none';
+    showArea();
+    redraw();
+    updateStatus();
+  });
+}
+
+function showArea() {
+  const scale = estimateScale();
+  const badge = document.getElementById('area-badge');
+
+  if (!scale) {
+    badge.style.display = 'none';
+    return;
+  }
+
+  // Shoelace on pixel coords, then scale²
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const j = (i + 1) % points.length;
+    area += points[i].x * points[j].y;
+    area -= points[j].x * points[i].y;
+  }
+  area = Math.abs(area) / 2;
+  const realArea = area * scale * scale;
+
+  document.getElementById('area-value').textContent = realArea.toFixed(2) + ' m²';
+  badge.style.display = 'block';
+  updateStatus(`Shape closed — Area: ${realArea.toFixed(2)} m²`);
+}
+
+function estimateScale() {
+  const measured = segments.filter(s => s.meters != null && s.pixels > 0);
+  if (measured.length === 0) return null;
+  // Weighted average: total_meters / total_pixels
+  const totalM  = measured.reduce((s, seg) => s + seg.meters, 0);
+  const totalPx = measured.reduce((s, seg) => s + seg.pixels, 0);
+  return totalM / totalPx;
+}
+
+// ─────────────────────────────────────────────
+//  MEASUREMENT MODAL
+// ─────────────────────────────────────────────
+let afterMeasure = null;
+
+function askMeasurement(segIdx, callback) {
+  const s = segments[segIdx];
+  const scale = estimateScale();
+  let hint = '';
+  if (scale) {
+    hint = ` (estimated ~${(s.pixels * scale).toFixed(2)} m)`;
+  }
+  document.getElementById('modal-desc').textContent = `How long is wall ${segIdx + 1}?${hint}`;
+  document.getElementById('measure-input').value = '';
+  document.getElementById('modal-overlay').classList.add('show');
+
+  // Focus after a tick (iOS fix)
+  setTimeout(() => document.getElementById('measure-input').focus(), 80);
+
+  afterMeasure = (meters) => {
+    if (meters !== null) segments[segIdx].meters = meters;
+    document.getElementById('modal-overlay').classList.remove('show');
+    redraw();
+    if (callback) callback();
+    else updateStatus();
+  };
+}
+
+document.getElementById('btn-confirm').addEventListener('click', () => {
+  const v = parseFloat(document.getElementById('measure-input').value);
+  if (isNaN(v) || v <= 0) {
+    document.getElementById('measure-input').style.borderColor = '#e94560';
+    document.getElementById('measure-input').focus();
+    return;
+  }
+  document.getElementById('measure-input').style.borderColor = '';
+  if (afterMeasure) afterMeasure(v);
+});
+
+document.getElementById('btn-skip').addEventListener('click', () => {
+  if (afterMeasure) afterMeasure(null);
+});
+
+document.getElementById('measure-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-confirm').click();
+  if (e.key === 'Escape') document.getElementById('btn-skip').click();
+});
+
+// ─────────────────────────────────────────────
+//  UNDO / CLEAR / SAVE
+// ─────────────────────────────────────────────
+document.getElementById('btn-undo').addEventListener('click', () => {
+  if (closed) {
+    // reopen shape
+    closed = false;
+    document.getElementById('area-badge').style.display = 'none';
+    segments.pop();
+    points.pop();
+    redraw();
+    updateStatus();
+    return;
+  }
+  if (segments.length > 0) segments.pop();
+  if (points.length > 0) points.pop();
+  redraw();
+  updateStatus();
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (points.length === 0) return;
+  if (!confirm('Clear the current drawing?')) return;
+  points = []; segments = []; cursor = null; closed = false; snapActive = false;
+  document.getElementById('area-badge').style.display = 'none';
+  document.getElementById('snap-hint').style.display = 'none';
+  redraw();
+  updateStatus();
+});
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  // Temporarily hide area badge from canvas (it's an overlay div, not on canvas)
+  // just snapshot the canvas
+  const link = document.createElement('a');
+  link.download = `site-measurement-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+// ─────────────────────────────────────────────
+//  STATUS
+// ─────────────────────────────────────────────
+function updateStatus(msg) {
+  const el = document.getElementById('status-text');
+  if (msg) { el.textContent = msg; return; }
+  if (closed) {
+    el.textContent = 'Shape complete. Press Undo to edit, or Clear to start over.';
+  } else if (points.length === 0) {
+    el.textContent = 'Tap anywhere to place your first point.';
+  } else if (points.length === 1) {
+    el.textContent = 'Tap to place the next point (corner of the room).';
+  } else {
+    const n = segments.filter(s => s.meters == null).length;
+    el.textContent = `${points.length} points, ${segments.length} walls.${n > 0 ? ` ${n} wall(s) still need a measurement.` : ''} Tap near the first point (red dot) to close the shape.`;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function clientToCanvas(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function dist(a, b) {
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+</script>
+</body>
+</html>
